@@ -1,0 +1,158 @@
+# MERN-deployment.yaml
+
+# MongoDB Deployment - Database
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo
+spec:
+  selector:
+    matchLabels:
+      app: mern-stack
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mern-stack
+    spec:
+      containers:
+        - name: mern-stack
+          image: mongo:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: db-data
+              mountPath: /data
+              readOnly: false
+          # resources:
+          #   requests:
+          #     memory: "2Gi"
+          #     cpu: "250m"
+          #   limits:
+          #     memory: "8Gi"
+          #     cpu: "500m"
+      volumes:
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: mern-stack-data
+
+---
+# Persistent Volume Claim - Data Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mern-stack-data
+  labels:
+    app: mern-stack
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# MongoDB Service - Expose the Database
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-db-service
+  labels:
+    app: mern-stack
+spec:
+  ports:
+    - name: mongo
+      port: 27017
+      targetPort: 27017
+  type: NodePort
+  selector:
+    app: mern-stack
+
+---
+# Server-Side Container - Backend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mern-stack
+spec:
+  selector:
+    matchLabels:
+      app: mern-stack
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mern-stack
+    spec:
+      containers:
+        - name: phonebookapp-api
+          image: dreambold/phonebookapp-api:alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: server-data
+              mountPath: /data
+              readOnly: false
+          # resources:
+          #   requests:
+          #     memory: "2Gi"
+          #     cpu: "250m"
+          #   limits:
+          #     memory: "4Gi"
+          #     cpu: "500m"
+      volumes:
+        - name: server-data
+          persistentVolumeClaim:
+            claimName: mern-stack-data
+
+---
+# Client-Side Container - Frontend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mern-stack-client
+spec:
+  selector:
+    matchLabels:
+      app: mern-stack-client
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mern-stack-client
+    spec:
+      containers:
+        - name: phonebookapp-frontend
+          image: dreambold/phonebookapp-frontend:alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          # resources:
+          #   requests:
+          #     memory: "1Gi"
+          #     cpu: "100m"
+          #   limits:
+          #     memory: "2Gi"
+          #     cpu: "250m"
+
+---
+# Load Balancer
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: mern-stack-client-lb
+spec:
+  selector:
+    app: mern-stack-client
+  ports:
+    - protocol: TCP
+      # Port accessible inside cluster
+      port: 3000
+      # Port to forward to inside the pod
+      targetPort: 3000
+      # Port accessible outside cluster
+      nodePort: 30012
+  type: LoadBalancer

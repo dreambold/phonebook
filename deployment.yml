@@ -1,0 +1,53 @@
+---
+apiVersion: apps/v0.1
+kind: Deployment
+metadata:
+  name: react-node-mongodb
+spec:
+  selector:
+    matchLabels:
+      app: node-graphql
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: node-graphql
+    spec:
+      containers:
+        - name: node-graphql
+          image: dreambold/node-graphql:latest
+          ports:
+            - containerPort: 4000
+      imagePullSecrets:
+        - name: node-graphql-secret
+
+---
+# apiVersion: v1
+# data:
+#   .dockerconfigjson: ewoJImF1dGhzIjogewoJCSJodHRwczovL2luZGV4LmRvY2tlci5pby92MS8iOiB7CgkJCSJhdXRoIjogIlpISmxZVzFpYjJ4a09tRXpNakZCSTBBaFFRPT0iCgkJfQoJfQp9
+# kind: Secret
+# metadata:
+#   creationTimestamp: "2022-10-28T17:52:23Z"
+#   name: node-graphql-secret
+#   namespace: default
+#   resourceVersion: "711"
+#   uid: 17714347-1a23-4b9a-995a-d856dba37c46
+# type: kubernetes.io/dockerconfigjson
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: node-graphql-service
+spec:
+  selector:
+    app: node-graphql
+  ports:
+    - protocol: TCP
+      # Port accessible inside cluster
+      port: 4000
+      # Port to forward to inside the pod
+      targetPort: 4000
+      # Port accessible outside cluster
+      nodePort: 30012
+  type: LoadBalancer
