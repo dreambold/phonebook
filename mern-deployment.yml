@@ -25,6 +25,9 @@ spec:
             - name: db-data
               mountPath: /data
               readOnly: false
+          envFrom:
+            - secretRef:
+                name: mongo-secret
           # resources:
           #   requests:
           #     memory: "2Gi"
@@ -36,6 +39,18 @@ spec:
         - name: db-data
           persistentVolumeClaim:
             claimName: mern-stack-data
+
+---
+# MongoDB user secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongo-secret
+type: Opaque
+data:
+  MONGODB_INITDB_DATABASE: Y29udGFjdHM=
+  MONGO_INITDB_ROOT_USERNAME: cm9vdA==
+  MONGO_INITDB_ROOT_PASSWORD: cGFzc3dvcmQ=
 
 ---
 # Persistent Volume Claim - Data Storage
@@ -95,6 +110,9 @@ spec:
             - name: server-data
               mountPath: /data
               readOnly: false
+          envFrom:
+            - secretRef:
+                name: database-string
           # resources:
           #   requests:
           #     memory: "2Gi"
@@ -106,6 +124,17 @@ spec:
         - name: server-data
           persistentVolumeClaim:
             claimName: mern-stack-data
+---
+# Server-Side Secret - database connection string
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database-string
+type: Opaque
+data:
+  DATABASE: "bW9uZ29kYjovL3Jvb3Q6cGFzc3dvcmRAMTcyLjE3LjAuODoyNzAxNy9jb250YWN0cz9hdXRoU291cmNlPWFkbWluCg==" 
+  # mongodb+srv://<username>:<password>@<svc-name>.<ns-name>.svc.cluster.local = 
+  # mongodb+srv://root:password@mongo-db-service.default.svc.cluster.local/contacts?authSource=admin
 
 ---
 # Client-Side Container - Frontend
